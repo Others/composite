@@ -55,7 +55,7 @@ thirdparty:
 
 
 init: clean distclean thirdparty all
-#	make -C lwip/cos
+	make -C lwip/cos
 #	make -C lua/cos
 # keep the following commands in one line. Same as above.
 #	make -C ck

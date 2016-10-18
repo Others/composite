@@ -1,17 +1,17 @@
 Vagrant.configure(2) do |config|
-    config.vm.box = "hashicorp/precise32"
+    config.vm.box = "ubuntu/trusty32"
 
     config.vm.provider "virtualbox" do |v|
-        v.customize ['modifyvm', :id, '--memory', '1000']
+        v.name = "composite_dev"
+        v.customize ['modifyvm', :id, '--memory', '1024']
         v.customize ['modifyvm', :id, '--cpus', '2']
-        # Enable
         v.customize ["modifyvm", :id, "--paravirtprovider", "kvm"]
     end
 
     # Disable the default syncing
     config.vm.synced_folder ".", "/vagrant", disabled: true
     # Instead sync the actual composite folder
-    config.vm.synced_folder "../", "/home/vagrant/research/composite"
+    config.vm.synced_folder "../", "/home/vagrant/composite"
 
     # Forward x11
     config.ssh.forward_x11 = true

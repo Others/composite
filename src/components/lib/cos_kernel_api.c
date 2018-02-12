@@ -451,6 +451,7 @@ __page_bump_alloc(struct cos_compinfo *ci, size_t sz)
 	if (unlikely(!heap_vaddr)) return 0;
 	heap_limit = heap_vaddr + sz;
 	assert(heap_limit > heap_vaddr);
+	printc("Heap vaddr %p\n", (void *) heap_vaddr);
 
 	/*
 	 * Allocate the memory to map into that virtual address. Note
@@ -465,9 +466,12 @@ __page_bump_alloc(struct cos_compinfo *ci, size_t sz)
 
 		umem = __umem_bump_alloc(ci);
 		if (!umem) return 0;
+		printc("umem %p\n", (void *) umem);
 
 		/* Actually map in the memory. */
-		if (call_cap_op(meta->mi.pgtbl_cap, CAPTBL_OP_MEMACTIVATE, umem, ci->pgtbl_cap, heap_cursor, 0)) {
+		int error = call_cap_op(meta->mi.pgtbl_cap, CAPTBL_OP_MEMACTIVATE, umem, ci->pgtbl_cap, heap_cursor, 0);
+		if (error) {
+			printc("Error is %d\n", (int) error);
 			assert(0);
 			return 0;
 		}

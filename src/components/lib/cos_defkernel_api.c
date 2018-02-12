@@ -40,7 +40,7 @@ cos_defcompinfo_init(void)
 {
 	cos_defcompinfo_init_ext(BOOT_CAPTBL_SELF_INITTCAP_BASE, BOOT_CAPTBL_SELF_INITTHD_BASE,
 	                         BOOT_CAPTBL_SELF_INITRCV_BASE, BOOT_CAPTBL_SELF_PT, BOOT_CAPTBL_SELF_CT,
-	                         BOOT_CAPTBL_SELF_COMP, (vaddr_t)cos_get_heap_ptr(), BOOT_CAPTBL_FREE);
+	                         BOOT_CAPTBL_SELF_COMP, (vaddr_t)cos_get_heap_ptr() + 1024 * 4, BOOT_CAPTBL_FREE);
 }
 
 void

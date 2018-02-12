@@ -9,6 +9,8 @@
 
 #include <cos_kernel_api.h>
 
+extern void CFE_TIME_Local1HzISR();
+
 void
 timer_fn_1hz(void *d)
 {

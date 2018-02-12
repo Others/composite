@@ -1,6 +1,9 @@
 #include <cos_component.h>
 #include <cobj_format.h>
-#include <cos_kernel_api.h>
+#include <cos_defkernel_api.h>
+#include <sl.h>
+//#include <cos_kernel_api.h>
+
 
 #include "boot_deps.h"
 
@@ -78,6 +81,7 @@ boot_comp_map_memory(struct cobj_header *h, spdid_t spdid, pgtblcap_t pt)
 
 		dest_daddr = sect->vaddr;
 		left       = cobj_sect_size(h, i);
+		printc("cobj_sect_size %d is %p\n", i, (void*) left);
 
 		/* previous section overlaps with this one, don't remap! */
 		if (round_to_page(dest_daddr) == prev_map) {
@@ -97,6 +101,8 @@ boot_comp_map_memory(struct cobj_header *h, spdid_t spdid, pgtblcap_t pt)
 			left -= PAGE_SIZE;
 		}
 	}
+	// FIXME:
+	boot_deps_map_sect(spdid, dest_daddr);
 
 	return 0;
 }
@@ -191,6 +197,7 @@ boot_comp_map_populate(struct cobj_header *h, spdid_t spdid, vaddr_t comp_info)
 
 	int total = 0;
 	for (i = 0; i < h->nsect; i++) {
+		printc("Section #%d of %d\n", i, h->nsect);
 		struct cobj_sect *sect;
 		vaddr_t           dest_daddr;
 		char *            lsrc;
@@ -199,6 +206,7 @@ boot_comp_map_populate(struct cobj_header *h, spdid_t spdid, vaddr_t comp_info)
 		sect = cobj_sect_get(h, i);
 		/* virtual address in the destination address space */
 		dest_daddr = sect->vaddr;
+		printc("Dest daddr is %p\n", (void*) sect->vaddr);
 		/* where we're copying from in the cobj */
 		lsrc = cobj_sect_contents(h, i);
 		/* how much is left to copy? */
@@ -207,11 +215,15 @@ boot_comp_map_populate(struct cobj_header *h, spdid_t spdid, vaddr_t comp_info)
 
 		/* Initialize memory. */
 		if (!(sect->flags & COBJ_SECT_KMEM)) {
+			printc("Doing memset/memcpy %p...\n", (void *) start_addr + (dest_daddr - init_daddr));
 			if (sect->flags & COBJ_SECT_ZEROS) {
+				printc("memset is of %p\n", (void *) left);
 				memset(start_addr + (dest_daddr - init_daddr), 0, left);
 			} else {
+				printc("memcpy is from %p\n", lsrc);
 				memcpy(start_addr + (dest_daddr - init_daddr), lsrc, left);
 			}
+			printc("Done doing memset/memcpy...\n");
 		}
 
 		if (sect->flags & COBJ_SECT_CINFO) {
@@ -237,14 +249,6 @@ boot_comp_map(struct cobj_header *h, spdid_t spdid, vaddr_t comp_info, pgtblcap_
 	return 0;
 }
 
-static void
-boot_init_sched(void)
-{
-	int i;
-
-	for (i = 0; i < MAX_NUM_SPDS; i++) schedule[i] = 0;
-	sched_cur = 0;
-}
 
 int
 boot_spd_inv_cap_alloc(struct cobj_header *h, spdid_t spdid)
@@ -253,8 +257,7 @@ boot_spd_inv_cap_alloc(struct cobj_header *h, spdid_t spdid)
 	struct usr_inv_cap inv_cap;
 	int cap_offset;
 	int i;
-
-	for (i = 0; i < h->ncap ; i++) {
+	for (i = 0; (size_t)i < h->ncap ; i++) {
 
 		cap = cobj_cap_get(h, i);
 		assert(cap);
@@ -286,6 +289,7 @@ boot_create_cap_system(void)
 		pgtblcap_t          pt;
 		spdid_t             spdid;
 		vaddr_t             ci = 0;
+		int                 is_sched;
 
 		h     = hs[i];
 		spdid = h->id;
@@ -305,9 +309,11 @@ boot_create_cap_system(void)
 		printc("Doing component map\n");
 		if (boot_comp_map(h, spdid, ci, pt)) BUG();
 
-		printc("Actually creating the new component...\n");
-		boot_newcomp_create(spdid, new_comp_cap_info[spdid].compinfo);
-		printc("\nComp %d (%s) created @ %x!\n\n", h->id, h->name, sect->vaddr);
+		//check for hardcoded "sl_" prefix in c obj to determine which cap image we create
+		printc("Checking if is scheduler...\n");
+		is_sched = boot_check_scheduler(h->name);
+		boot_newcomp_create(spdid, new_comp_cap_info[spdid].compinfo, is_sched);
+		printc("\nComp %d (%s) scheduler=%d created @ %x!\n\n", h->id, h->name, is_sched, sect->vaddr);
 	}
 
 
@@ -320,7 +326,7 @@ boot_init_ndeps(int num_cobj)
 	int i = 0;
 
 	printc("MAX DEPS: %d\n", MAX_DEPS);
-	for (i = 0; i < deps_list[i].server; i++) {
+	for (i = 0; (short int)i < deps_list[i].server; i++) {
 //		if (deps_list[i].client != 0) printc("client: %d, server: %d \n", deps_list[i].client, deps_list[i].server);
 	}
 
@@ -345,9 +351,6 @@ cos_init(void)
 
 	init_args = (struct component_init_str *)cos_comp_info.cos_poly[3];
 	init_args++;
-
-	boot_sched = (unsigned int *)cos_comp_info.cos_poly[4];
-	boot_init_sched();
 
 	printc("num cobjs: %d\n", num_cobj);
 	boot_find_cobjs(h, num_cobj);

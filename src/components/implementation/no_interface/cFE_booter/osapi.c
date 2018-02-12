@@ -21,15 +21,23 @@ int have_initialized = 0;
 int32 OS_API_Init(void)
 {
     if(!have_initialized) {
+        printc("Initializing os api...\n");
         cos_defcompinfo_init();
+        printc("cos_defcompinfo_init done\n");
 
         struct cos_defcompinfo *defci = cos_defcompinfo_curr_get();
+        printc("cos_defcompinfo_curr_get done\n");
         struct cos_compinfo    *ci    = cos_compinfo_get(defci);
+        printc("cos_compinfo_get done\n");
         cos_meminfo_init(&(ci->mi), BOOT_MEM_KM_BASE, COS_MEM_KERN_PA_SZ, BOOT_CAPTBL_SELF_UNTYPED_PT);
+        printc("cos_meminfo_init done\n");
 
         OS_FS_Init();
+        printc("OS_FS_Init done\n");
+
 
         OS_ModuleTableInit();
+        printc("OS_ModuleTableInit done\n");
 
         have_initialized = 1;
     }
